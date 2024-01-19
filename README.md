@@ -4,7 +4,7 @@ Currently planned to support 3DS first, web next, then go on to support more pla
 However, all those fun things start here, we need your help to get the show on the road.  
 
 # How to run Bismuth
-Install Node.js v21.x.x 
+Install [Node.js v21.6.0](https://nodejs.org/dist/v21.6.0/)
 ```sh
 git clone https://github.com/bismuth-srv/server.git Bismuth-Server
 cd Bismuth-Server
