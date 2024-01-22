@@ -1,6 +1,6 @@
 
 PKHeX/
 
-database.db
+*.db
 
 node_modules/
