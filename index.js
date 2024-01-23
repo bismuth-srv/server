@@ -28,11 +28,46 @@ if (database == null || database == "") {
 }
 
 let db = new sqlite3.Database(database, (err) => {
+    if (err) {
+        console.error(err.message);
+        process.exit(352);
+    }
+    console.log(clc.green('Connected to the SQLite3 database ' + database + '!'));
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY NOT NULL UNIQUE,
+        username TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL UNIQUE,
+        pwdhash TEXT NOT NULL UNIQUE
+    )`, (err) => {
         if (err) {
-            console.error(err.message);
-            process.exit(1);
+            console.error((err.message));
+            process.exit(353);
+        } else {
+            console.log("User table created!");
+        }});
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY NOT NULL UNIQUE,
+        username TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL UNIQUE,
+        pwdhash TEXT NOT NULL UNIQUE
+    )`, (err) => {
+        if (err) {
+            console.error((err.message));
+            process.exit(353);
+        } else {
+            console.log("System table created!");
         }
-        console.log(clc.green('Connected to the SQLite3 database ' + database + '!'));
+    });
+});
+
+db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'", (err, row) => {
+    if (err) {
+        console.error(err.message);
+        process.exit(355);
+    } else if (!row) {
+        console.error("Data corruption error: Table 'users' does not exist in the database!");
+        process.exit(356);
+    }
 });
 
 app.use((req, res, next) => {
@@ -51,12 +86,16 @@ app.get('/api/online', (req, res) => {
 });
 
 app.get('/api/register', (req, res) => {
-    const { register } = req.query;
+    const { username } = req.query;
+    const { email } = req.query;
+    const { pwdhash } = req.query;
     
-    if (register === '' || register === null) {
+    if (username === '' || username === null) {
         res.status(405).send('Womp womp, there\'s no data in the registration request!\nCheck your Sulfur client!');
-    } else if (register === 'test') {
-        res.status(200).send('yay!! account made!!')
+    } else if (username !== '' || username !== null && email === '' || email === null && pwdhash !== '' && pwdhash.length === 256) {
+        res.status(200).send('Account created without an email! (Here be dragons!)');
+    } else if (username !== '' || username !== null && email !== '' || email !== null && pwdhash !== '' && pwdhash.length === 256) {
+        res.status(200).send('Account created!');
     } else {
         res.status(405).send('I\'m boutta do you like I did the last guy who tried to register without any registration data. (405 Method Not Allowed)');
     }
