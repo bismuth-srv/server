@@ -105,9 +105,9 @@ app.get('/api/login', (req, res) => {
     const { login } = req.query;
     
     if (login === '' || login === null) {
-        res.status(405).send('Womp womp, there\'s no data in the login request!\nCheck your Sulfur client!');
+        res.status(405).json({message:'Womp womp, there\'s no data in the login request!\nCheck your Sulfur client!'});
     } else {
-        res.status(405).send('I\'m boutta do you like I did the last guy who tried to login without any login data. (405 Method Not Allowed)');
+        res.status(405).json({message:'I\'m boutta do you like I did the last guy who tried to login without any login data. (405 Method Not Allowed)'});
     }
 });
 
