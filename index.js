@@ -78,11 +78,11 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-    res.send("This is a placeholder until I actually make a WebUI to edit your cute Pokemon!");
+    res.json({message:'This is a placeholder until I actually make a WebUI to edit your cute Pokémon!'});
 });
 
 app.get('/api/online', (req, res) => {
-    res.send("Hello! I'm a Bismuth server running on port " + port + "!");
+    res.json({message: 'Hello! I\'m a Bismuth server running on port ' + port + '!'});
 });
 
 app.get('/api/register', (req, res) => {
@@ -91,13 +91,13 @@ app.get('/api/register', (req, res) => {
     const { pwdhash } = req.query;
     
     if (username === '' || username === null) {
-        res.status(405).send('Womp womp, there\'s no data in the registration request!\nCheck your Sulfur client!');
+        res.status(405).json({message:'Womp womp, there\'s no data in the registration request!\nCheck your Sulfur client!'});
     } else if (username !== '' || username !== null && email === '' || email === null && pwdhash !== '' && pwdhash.length === 256) {
-        res.status(200).send('Account created without an email! (Here be dragons!)');
+        res.status(200).json({message:'Account created without an email! (Here be dragons!)'});
     } else if (username !== '' || username !== null && email !== '' || email !== null && pwdhash !== '' && pwdhash.length === 256) {
-        res.status(200).send('Account created!');
+        res.status(200).json({message:'Account created!'});
     } else {
-        res.status(405).send('I\'m boutta do you like I did the last guy who tried to register without any registration data. (405 Method Not Allowed)');
+        res.status(405).json({message:'I\'m boutta do you like I did the last guy who tried to register without any registration data. (405 Method Not Allowed)'});
     }
 });
 
