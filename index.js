@@ -92,9 +92,9 @@ app.get('/api/register', (req, res) => {
     
     if (username === '' || username === null) {
         res.status(405).json({message:'Womp womp, there\'s no data in the registration request!\nCheck your Sulfur client!'});
-    } else if (username !== '' || username !== null && email === '' || email === null && pwdhash !== '' && pwdhash.length === 256) {
+    } else if (username !== '' || username !== null && email === '' || email === null && pwdhash !== '' || pwdhash !== null && pwdhash.length === 256) {
         res.status(200).json({message:'Account created without an email! (Here be dragons!)'});
-    } else if (username !== '' || username !== null && email !== '' || email !== null && pwdhash !== '' && pwdhash.length === 256) {
+    } else if (username !== '' || username !== null && email !== '' || email !== null && pwdhash !== '' || pwdhash !== null && pwdhash.length === 256) {
         res.status(200).json({message:'Account created!'});
     } else {
         res.status(405).json({message:'I\'m boutta do you like I did the last guy who tried to register without any registration data. (405 Method Not Allowed)'});
@@ -124,3 +124,8 @@ app.get('/api/testfilepayloadsender', (req, res) => {
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
+
+if (githubtester == "true") {
+    console.log(clc.green("Successfully finished testing, exiting..."));
+    process.exit(0);
+}
