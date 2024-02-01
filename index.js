@@ -6,12 +6,15 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
+const bismuth = require('./package.json').name;
+const version = require('./package.json').version;
 const debug = process.env.DEBUG;
 const port = process.env.PORT;
 const database = process.env.DB;
 
 if (debug !== "true" && debug !== "false") {
     console.log (clc.yellow("Confused on your debugging mode, please set it to either true or false in the .env file! (value is debug=\'false\' by default)"));
+    console.log (clc.yellow("We'll assume it's false for now..."));
 }
 
 if (debug == "true") {
@@ -39,17 +42,17 @@ if (fs.existsSync("./" + database)) {
     db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'", (err, row) => {
         if (err) {
             console.error(err.message);
-            process.exit(354);
+            process.exit(352);
         } else if (!row) {
             console.error("Data corruption error: Table 'users' does not exist in the database!");
-            process.exit(355);
+            process.exit(353);
         }
     });
 } else {
     let db = new sqlite3.Database(database, (err) => {
         if (err) {
             console.error(err.message);
-            process.exit(352);
+            process.exit(354);
         }
         console.log(clc.green('Created SQLite3 database ' + database + '!'));
         db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -60,7 +63,7 @@ if (fs.existsSync("./" + database)) {
         )`, (err) => {
             if (err) {
                 console.error((err.message));
-                process.exit(353);
+                process.exit(355);
             } else {
                 console.log(clc.green("User table created!"));
             }
@@ -70,7 +73,7 @@ if (fs.existsSync("./" + database)) {
 
 app.use((req, res, next) => {
     if (debug == "true") {
-        console.log(`Request received from ${req.ip}:`, req.body);
+        console.log(`Request received from ${req.ip}:`, req.query);
         next();
     }
 });
@@ -84,18 +87,16 @@ app.get('/api/online', (req, res) => {
 });
 
 app.get('/api/register', (req, res) => {
-    const { username } = req.query;
-    const { email } = req.query;
-    const { pwdhash } = req.query;
+    const { username, email, pwdhash } = req.query;
     
-    if (username === '' || username === null) {
-        res.status(405).json({message:'Womp womp, there\'s no data in the registration request!\nCheck your Sulfur client!'});
-    } else if (username !== '' || username !== null && email === '' || email === null && pwdhash !== '' || pwdhash !== null && pwdhash.length === 256) {
-        res.status(200).json({message:'Account created without an email! (Here be dragons!)'});
-    } else if (username !== '' || username !== null && email !== '' || email !== null && pwdhash !== '' || pwdhash !== null && pwdhash.length === 256) {
-        res.status(200).json({message:'Account created!'});
+    if (!username && !email && !pwdhash) {
+        res.status(405).json({message: 'Womp womp, there\'s no data in the registration request!', message2: 'Check your Sulfur client!'});
+    } else if (!email && !pwdhash) {
+        res.status(405).json({message: 'Please provide registration info!'});
+    } else if (email && pwdhash && pwdhash.length === 256) {
+        res.status(200).json({message: 'Account created!'});
     } else {
-        res.status(405).json({message:'I\'m boutta do you like I did the last guy who tried to register without any registration data. (405 Method Not Allowed)'});
+        res.status(405).json({message: 'How did we get here? (405 Method Not Allowed)'});
     }
 });
 
@@ -103,9 +104,9 @@ app.get('/api/login', (req, res) => {
     const { login } = req.query;
     
     if (login === '' || login === null) {
-        res.status(405).json({message:'Womp womp, there\'s no data in the login request!\nCheck your Sulfur client!'});
+        res.status(405).json({message:'Womp womp, there\'s no data in the login request!', message2: 'Check your Sulfur client!'});
     } else {
-        res.status(405).json({message:'I\'m boutta do you like I did the last guy who tried to login without any login data. (405 Method Not Allowed)'});
+        res.status(405).json({message:'How did we get here? (405 Method Not Allowed)'});
     }
 });
 
@@ -114,13 +115,12 @@ app.get('/serverconfig', (req, res) => {
     const { clientversion } = req.query;
 
     if (client === 'sulfur' && clientversion === version) {
-        res.status(200).json({"name": bismuth, "version": version, })
+        res.status(200).json({"name": bismuth, "version": version, "port": port})
     } else if (client === 'sulfur' && clientversion !== version) {
         res.status(200).json({message: "You're using an outdated version of Sulfur! Please update to the latest version to use this server!"})
     } else {
         res.status(405).json({message: "You're not using Sulfur! You might be lost, however, that's okay!", message2: "Go to the root directory of this page and you'll find the Bismuth web panel!"})
     }
-
 });
 
 app.get('/api/testfilepayloadsender', (req, res) => {
