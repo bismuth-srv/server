@@ -111,6 +111,20 @@ app.get('/api/login', (req, res) => {
     }
 });
 
+app.get('/serverconfig', (req, res) => {
+    const { client } = req.query;
+    const { clientversion } = req.query;
+
+    if (client === 'sulfur' && clientversion === '0.0.1') {
+        res.status(200).json({"name": bismuth, "version": version, })
+    } else if (client === 'sulfur' && clientversion !== '0.0.1') {
+        res.status(200).json({message: "You're using an outdated version of Sulfur! Please update to the latest version to use this server!"})
+    } else {
+        res.status(405).json({message: "You're not using Sulfur! You might be lost, however, that's okay!", message2: "Go to the root directory of this page and you'll find the Bismuth web panel!"})
+    }
+
+});
+
 app.get('/api/testfilepayloadsender', (req, res) => {
     let payload = req.query.payload;
     if (payload == "testload") {
