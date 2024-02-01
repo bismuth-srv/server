@@ -4,6 +4,7 @@ const express = require('express');
 const app = express();
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 const debug = process.env.DEBUG;
 const port = process.env.PORT;
@@ -27,48 +28,45 @@ if (database == null || database == "") {
     process.exit(343);
 }
 
-let db = new sqlite3.Database(database, (err) => {
-    if (err) {
-        console.error(err.message);
-        process.exit(352);
-    }
-    console.log(clc.green('Connected to the SQLite3 database ' + database + '!'));
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-        username TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        pwdhash TEXT NOT NULL UNIQUE
-    )`, (err) => {
+if (fs.existsSync("./" + database)) {
+    let db = new sqlite3.Database(database, (err) => {
         if (err) {
-            console.error((err.message));
-            process.exit(353);
-        } else {
-            console.log("User table created!");
-        }});
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-        username TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        pwdhash TEXT NOT NULL UNIQUE
-    )`, (err) => {
+            console.error(err.message);
+            process.exit(351);
+        }
+        console.log(clc.green('Connected to the SQLite3 database ' + database + '!'));
+    });
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'", (err, row) => {
         if (err) {
-            console.error((err.message));
-            process.exit(353);
-        } else {
-            console.log("System table created!");
+            console.error(err.message);
+            process.exit(354);
+        } else if (!row) {
+            console.error("Data corruption error: Table 'users' does not exist in the database!");
+            process.exit(355);
         }
     });
-});
-
-db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'", (err, row) => {
-    if (err) {
-        console.error(err.message);
-        process.exit(355);
-    } else if (!row) {
-        console.error("Data corruption error: Table 'users' does not exist in the database!");
-        process.exit(356);
-    }
-});
+} else {
+    let db = new sqlite3.Database(database, (err) => {
+        if (err) {
+            console.error(err.message);
+            process.exit(352);
+        }
+        console.log(clc.green('Created SQLite3 database ' + database + '!'));
+        db.run(`CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY NOT NULL UNIQUE,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            pwdhash TEXT NOT NULL UNIQUE
+        )`, (err) => {
+            if (err) {
+                console.error((err.message));
+                process.exit(353);
+            } else {
+                console.log(clc.green("User table created!"));
+            }
+        });
+    });
+}
 
 app.use((req, res, next) => {
     if (debug == "true") {
@@ -139,7 +137,10 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-if (githubtester == "true") {
+const githubtester = process.env.GITHUBTESTER;
+if (githubtester === "true") {
     console.log(clc.green("Successfully finished testing, exiting..."));
     process.exit(0);
+} else if (githubtester === "false" || githubtester === null || githubtester === ""){
+    return;
 }

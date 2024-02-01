@@ -19,6 +19,13 @@ jobs:
           node-version: '21.6.0'
       - name: Test Bismuth
         run: |
+          rm .env
+          echo 'debug="true"' >> .env
+          echo 'port="4444"' >> .env
+          echo 'db="main.db"' >> .env
+          echo 'reqemail="true"' >> .env
+          echo 'boxes="60"' >> .env
+          echo 'admintoken=""' >> .env
           echo 'githubtester="true"' >> .env
           npm install
           node .
