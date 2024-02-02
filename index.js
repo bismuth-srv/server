@@ -73,7 +73,7 @@ if (fs.existsSync("./" + database)) {
 
 app.use((req, res, next) => {
     if (debug == "true") {
-        console.log(`Request received from ${req.ip}:`, req.query);
+        console.log(`Request received from ${req.ip}:`, req.query, "in", req.path, "via a", req.method, "request with this user-agent:", req.headers['user-agent']);
         next();
     }
 });
@@ -115,7 +115,7 @@ app.get('/serverconfig', (req, res) => {
     const { clientversion } = req.query;
 
     if (client === 'sulfur' && clientversion === version) {
-        res.status(200).json({"name": bismuth, "version": version, "port": port})
+        res.status(200).json({"name": bismuth, "version": version, "port": port, "debug": debug})
     } else if (client === 'sulfur' && clientversion !== version) {
         res.status(200).json({message: "You're using an outdated version of Sulfur! Please update to the latest version to use this server!"})
     } else {
