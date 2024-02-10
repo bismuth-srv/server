@@ -73,20 +73,45 @@ if (fs.existsSync("./" + database)) {
 
 app.use((req, res, next) => {
     if (debug == "true") {
-        console.log(`Request received from ${req.ip}:`, req.query, "in", req.path, "via a", req.method, "request with this user-agent:", req.headers['user-agent']);
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const ipv4 = ip.includes(':') ? ip.split(':').pop() : ip;
+        console.log(`Request received from ${ipv4}:`, req.query, "in", req.path, "via a", req.method, "request with this user-agent:", req.headers['user-agent']);
         next();
     }
 });
 
 app.get('/', (req, res) => {
-    res.json({message:'This is a placeholder until I actually make a WebUI to edit your cute Pokémon!'});
+    const userAgent = req.headers['user-agent'];
+    const isMobile = /Mobile/i.test(userAgent);
+
+    if (isMobile) {
+        res.sendFile(path.join(__dirname + '/mobile.html'));
+    } else {
+        res.sendFile(path.join(__dirname + '/index.html'));
+    }
 });
 
-app.get('/api/online', (req, res) => {
+app.post('/api/online', (req, res) => {
     res.json({message: 'Hello! I\'m a Bismuth server running on port ' + port + '!'});
 });
 
-app.get('/api/register', (req, res) => {
+app.post('/api/logout', (req, res) => {
+
+});
+
+app.post('/api/resetpassword', (req, res) => {
+
+});
+
+app.post('/api/userinfo', (req, res) => {
+
+});
+
+app.post('/api/getbox', (req, res) => {
+
+});
+
+app.post('/api/register', (req, res) => {
     const { username, email, pwdhash } = req.query;
     
     if (!username && !email && !pwdhash) {
@@ -100,7 +125,7 @@ app.get('/api/register', (req, res) => {
     }
 });
 
-app.get('/api/login', (req, res) => {
+app.post('/api/login', (req, res) => {
     const { login } = req.query;
     
     if (login === '' || login === null) {
@@ -110,14 +135,14 @@ app.get('/api/login', (req, res) => {
     }
 });
 
-app.get('/serverconfig', (req, res) => {
+app.post('/serverconfig', (req, res) => {
     const { client } = req.query;
     const { clientversion } = req.query;
 
     if (client === 'sulfur' && clientversion === version) {
         res.status(200).json({"name": bismuth, "version": version, "port": port, "debug": debug})
     } else if (client === 'sulfur' && clientversion !== version) {
-        res.status(200).json({message: "You're using an outdated version of Sulfur! Please update to the latest version to use this server!"})
+        res.status(200).json({message: "You're using the wrong version of Sulfur! Please update to the correct version to use this server!", clientver: clientversion, serverver: version})
     } else {
         res.status(405).json({message: "You're not using Sulfur! You might be lost, however, that's okay!", message2: "Go to the root directory of this page and you'll find the Bismuth web panel!"})
     }
