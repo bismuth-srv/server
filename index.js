@@ -73,7 +73,7 @@ if (fs.existsSync("./" + database)) {
 
 app.use((req, res, next) => {
     if (debug == "true") {
-        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         const ipv4 = ip.includes(':') ? ip.split(':').pop() : ip;
         console.log(`Request received from ${ipv4}:`, req.query, "in", req.path, "via a", req.method, "request with this user-agent:", req.headers['user-agent']);
         next();
