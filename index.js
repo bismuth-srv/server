@@ -5,7 +5,6 @@ const app = express();
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
-
 const bismuth = require('./package.json').name;
 const version = require('./package.json').version;
 const debug = process.env.DEBUG;
@@ -56,10 +55,10 @@ if (fs.existsSync("./" + database)) {
         }
         console.log(clc.green('Created SQLite3 database ' + database + '!'));
         db.run(`CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY NOT NULL UNIQUE,
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            pwdhash TEXT NOT NULL UNIQUE
+            username TEXT PRIMARY KEY NOT NULL UNIQUE,
+            pwdhash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            accesstoken TEXT
         )`, (err) => {
             if (err) {
                 console.error((err.message));
@@ -96,7 +95,17 @@ app.post('/api/online', (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-
+    let db = openDB();
+    db.run('UPDATE users SET accesstoken = ? WHERE accesstoken = ?', ['', req.cookies['accesstoken']], (err) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send('Internal server error');
+            closeDB(db);
+        } else {
+            res.status(200).send('Logged out');
+            closeDB(db);
+        }
+    });
 });
 
 app.post('/api/resetpassword', (req, res) => {
@@ -111,28 +120,106 @@ app.post('/api/getbox', (req, res) => {
 
 });
 
-app.post('/api/register', (req, res) => {
-    const { username, email, pwdhash } = req.query;
-    
-    if (!username && !email && !pwdhash) {
-        res.status(405).json({message: 'Womp womp, there\'s no data in the registration request!', message2: 'Check your Sulfur client!'});
-    } else if (!email && !pwdhash) {
-        res.status(405).json({message: 'Please provide registration info!'});
-    } else if (email && pwdhash && pwdhash.length === 256) {
-        res.status(200).json({message: 'Account created!'});
-    } else {
-        res.status(405).json({message: 'How did we get here? (405 Method Not Allowed)'});
-    }
+app.post('/api/admin/createuser', (req, res) => {
+    const password = req.body.password;
+    const username = req.body.username;
+    bcrypt.genSalt(10, (err, salt) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send('Internal server error');
+        } else {
+            bcrypt.hash(password, salt, (err, hash) => {
+                if (err) {
+                    console.error(err.message);
+                    res.status(500).send('Internal server error');
+                    return;
+                }
+                let db = openDB();
+                try {
+                    db.get('SELECT * FROM users WHERE username = ?', [username], (err, row) => {
+                        if (err) {
+                            console.error(err.message);
+                            res.status(500).send('Internal server error');
+                        } else if (row) {
+                            res.status(409).send('User already exists');
+                        } else {
+                            db.run('INSERT INTO users (username, pwdhash, salt, accesstoken) VALUES (?, ?, ?, ?)', [username, hash, salt, null], (err) => {
+                                if (err) {
+                                    console.error(err.message);
+                                    res.status(500).send('Internal server error');
+                                } else {
+                                    res.status(200).send('User created successfully');
+                                }
+                            });
+                        }
+                    });
+                } catch (err) {
+                    console.error(err.message);
+                    res.status(500).send('Internal server error');
+                    closeDB(db);
+                };
+                closeDB(db);
+            });
+        }
+    });
 });
 
 app.post('/api/login', (req, res) => {
-    const { login } = req.query;
-    
-    if (login === '' || login === null) {
-        res.status(405).json({message:'Womp womp, there\'s no data in the login request!', message2: 'Check your Sulfur client!'});
-    } else {
-        res.status(405).json({message:'How did we get here? (405 Method Not Allowed)'});
-    }
+    const password = req.body["password"];
+    let db = openDB();
+    db.get('SELECT salt FROM users WHERE username = ?', [req.body.username], (err, row) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send('Internal server error');
+            closeDB(db);
+        } else if (!row) {
+            res.status(401).send('Unauthorized');
+            closeDB(db);
+        } else {
+            salt = row.salt;
+            bcrypt.hash(password, salt, (err, hash) => {
+                if (err) {
+                    console.error(err.message);
+                    res.status(500).send('Internal server error');
+                    closeDB(db);
+                    return;
+                }
+                db.get('SELECT * FROM users WHERE username = ?', [req.body.username], (err, row) => {
+                    if (err) {
+                        console.error(err.message);
+                        res.status(500).send('Internal server error');
+                        closeDB(db);
+                    } else if (!row) {
+                        res.status(401).send('Unauthorized');
+                        closeDB(db);
+                    } else {
+                        bcrypt.compare(password, row.pwdhash, (err, result) => {
+                            if (err) {
+                                console.error(err.message);
+                                res.status(500).send('Internal server error');
+                                closeDB(db);
+                            } else if (result) {
+                                const accessToken = generateRandomString(64);
+                                db.run('UPDATE users SET accesstoken = ? WHERE username = ?', [accessToken, req.body.username], (err) => {
+                                    if (err) {
+                                        console.error(err.message);
+                                        res.status(500).send('Internal server error');
+                                        closeDB(db);
+                                    } else {
+                                        res.status(200).json({'accesstoken': accessToken, 'expiry': Date.now() + 86400000});
+                                        closeDB(db);
+                                    }
+                                });
+                            } else {
+                                res.status(401).send('Unauthorized');
+                                closeDB(db);
+                            }
+                        });
+                    }
+                });
+            });
+        }
+    });
 });
 
 app.post('/serverconfig', (req, res) => {
